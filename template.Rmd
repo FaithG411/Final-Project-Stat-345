@@ -14,7 +14,6 @@ knitr::opts_chunk$set(echo = TRUE)
 #Jackson Breunig
 ```
 
-
 ## Section Two
 
 ```{r student2}
@@ -27,10 +26,60 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
-
-
 ## Section Four
 
 ```{r student4}
+
+```
+
+Testing code for web scraping
+
+```{r}
+library(rvest)
+library(dplyr)
+library(purrr)
+library(stringr)
+library(janitor)
+
+years <- 1958:2025
+
+get_top_song <- function(year) {
+  url <- paste0(
+    "https://en.wikipedia.org/wiki/Billboard_Year-End_Hot_100_singles_of_",
+    year
+  )
+  
+  page <- tryCatch(read_html(url), error = function(e) return(NULL))
+  if (is.null(page)) return(NULL)
+  
+  tables <- page %>% html_table(fill = TRUE)
+  if (length(tables) == 0) return(NULL)
+  
+  df <- tables[[1]] %>% clean_names()
+  
+  # Title column patterns
+  title_col <- names(df)[str_detect(names(df), "(title|song|single|track)")]
+  
+  # Artist column patterns
+  artist_col <- names(df)[str_detect(names(df), "(artist)")]
+  
+  # If either is missing, skip this year
+  if (length(title_col) == 0 | length(artist_col) == 0) {
+    message("Skipping year ", year, " — could not find title/artist columns")
+    return(NULL)
+  }
+  
+  top <- df %>% slice(1)
+  
+  tibble(
+    year   = year,
+    title  = top[[title_col[1]]],
+    artist = top[[artist_col[1]]]
+  )
+}
+
+top_songs <- map_df(years, get_top_song)
+top_songs
+
 
 ```
