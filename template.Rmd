@@ -21,9 +21,55 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Section Three
-
+Code to implement lyrics into top_songs table
 ```{r student3}
+library(dplyr)
+library(purrr)
+library(stringr)
+library(geniusr)
+library(rvest)
 
+token <- "0KNA5jy240qJr8BgPvw31HQVe6sJgKFemi4Old3f6l5CN04wbwmThZHIuHHR_7xM"
+
+geniusr::genius_token(token)
+
+clean_text <- function(x) {
+  x %>%
+    str_to_lower() %>%
+    str_remove_all("\\(.*?\\)") %>%   # removes (feat. ...) etc.
+    str_remove_all("[[:punct:]]") %>%  # removes quotes, commas, apostrophes
+    str_squish()
+}
+
+
+get_lyrics <- function(title, artist) {
+  tryCatch({
+    
+    query <- paste(title, artist)
+    res <- search_genius(query)
+    
+    if (length(res) == 0 || length(res[[1]]) == 0) return(NA)
+    
+    url <- res[[1]][[1]]$url
+    
+    page <- read_html(url)
+    
+    lyrics <- page %>%
+      html_nodes("div[data-lyrics-container='true']") %>%
+      html_text() %>%
+      paste(collapse = " ")
+    
+    if (lyrics == "") return(NA)
+    
+    lyrics
+    
+  }, error = function(e) NA)
+}
+
+top_songs <- top_songs %>%
+  mutate(
+    lyrics = map2_chr(title, artist, get_lyrics)
+  )
 ```
 
 ## Section Four
@@ -83,3 +129,7 @@ top_songs
 
 
 ```
+```{r}
+
+```
+
